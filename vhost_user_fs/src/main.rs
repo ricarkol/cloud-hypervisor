@@ -24,7 +24,8 @@ use vhost_user_backend::{VhostUserBackend, VhostUserDaemon, Vring};
 use vhost_user_fs::descriptor_utils::Error as VufDescriptorError;
 use vhost_user_fs::descriptor_utils::{Reader, Writer};
 use vhost_user_fs::filesystem::FileSystem;
-use vhost_user_fs::passthrough::{self, PassthroughFs};
+//use vhost_user_fs::memfs::{self, MemFs};
+use vhost_user_fs::memfs::{self, MemFs};
 use vhost_user_fs::sandbox::Sandbox;
 use vhost_user_fs::seccomp::enable_seccomp;
 use vhost_user_fs::server::Server;
@@ -371,7 +372,7 @@ fn main() {
                 unsafe { libc::waitpid(child_pid, std::ptr::null_mut(), 0) };
                 return;
             }
-            None => passthrough::Config {
+            None => memfs::Config {
                 root_dir: "/".to_string(),
                 xattr,
                 proc_sfd_rawfd: sandbox.get_proc_self_fd(),
@@ -379,7 +380,7 @@ fn main() {
             },
         }
     } else {
-        passthrough::Config {
+        memfs::Config {
             root_dir: shared_dir.to_string(),
             xattr,
             ..Default::default()
@@ -391,7 +392,7 @@ fn main() {
         enable_seccomp(seccomp_mode).unwrap();
     };
 
-    let fs = PassthroughFs::new(fs_cfg).unwrap();
+    let fs = MemFs::new(fs_cfg).unwrap();
     let fs_backend = Arc::new(RwLock::new(
         VhostUserFsBackend::new(fs, thread_pool_size).unwrap(),
     ));
